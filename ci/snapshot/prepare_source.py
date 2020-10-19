@@ -39,9 +39,9 @@ YAML_NAME = "cbmc-batch.yaml"
 # FIX: Lambdas put S3_BKT in env, CodeBuild puts S3_BUCKET in env.
 BKT = os.environ.get('S3_BKT') or os.environ.get('S3_BUCKET')
 CHECKOUT_FAILED_BUT_COMMIT_EXISTS_MSG = "git cat-file shows checkout {} as existing, but git checkout failed"
-RECURSIVE_CHECKOUT_FAILED_MSG = "Failed to do a git checkout --recurse-submodules. Possible reason: submodule " \
-                                "missing from this branch, or commit no longer exists"
-FORCED_CHECKOUT_FAILED_MSG = "Failed to do a git checkout --recurse-submodules with force flag. " \
+CHECKOUT_FAILED_MSG = "Failed to do a git checkout. Possible reason: " \
+                      "commit no longer exists"
+FORCED_CHECKOUT_FAILED_MSG = "Failed to do a git checkout with force flag. " \
                              "Possible reason: commit no longer exists"
 
 
@@ -276,23 +276,26 @@ def merge_repository(sha=None, branch=None, srcdir=None):
     cmd = ['git', 'merge', '--no-edit', checkout]
     run_command(cmd, srcdir)
 
-def checkout_recurse_submodules(srcdir, checkout):
-    cmd = ['git', 'checkout', '--recurse-submodules', checkout]
+
+def git_checkout(srcdir, checkout):
+    cmd = ['git', 'checkout', checkout]
     try:
         run_command(cmd, srcdir)
     except subprocess.CalledProcessError:
-        logging.info(RECURSIVE_CHECKOUT_FAILED_MSG)
+        logging.info(CHECKOUT_FAILED_MSG)
         return False
     return True
 
-def checkout_force_recurse_submodules(srcdir, checkout):
-    cmd = ['git', 'checkout', '--force', '--recurse-submodules', checkout]
+
+def git_force_checkout(srcdir, checkout):
+    cmd = ['git', 'checkout', '--force', checkout]
     try:
         run_command(cmd, srcdir)
     except subprocess.CalledProcessError:
         logging.info(FORCED_CHECKOUT_FAILED_MSG)
         return False
     return True
+
 
 def verify_commit_is_gone(srcdir, checkout):
     """
@@ -314,16 +317,16 @@ def checkout_repository(sha=None, branch=None, srcdir=None):
     if checkout is None:
         return False
 
-    cmd = ["git", "submodule", "update", "--init", "--recursive"]
+    cmd = ["git", "submodule", "update", "--init", "--recursive", "--checkout"]
     run_command(cmd, srcdir)
 
-    recurse_submodule_checkout_success = checkout_recurse_submodules(srcdir, checkout)
+    recurse_submodule_checkout_success = git_checkout(srcdir, checkout)
     if not recurse_submodule_checkout_success:
-        force_checkout_success = checkout_force_recurse_submodules(srcdir, checkout)
+        force_checkout_success = git_force_checkout(srcdir, checkout)
         if not force_checkout_success and not verify_commit_is_gone(srcdir, checkout):
             raise Exception(CHECKOUT_FAILED_BUT_COMMIT_EXISTS_MSG.format(checkout))
 
-    cmd = ["git", "submodule", "update", "--init", "--recursive"]
+    cmd = ["git", "submodule", "update", "--init", "--recursive", "--checkout"]
     run_command(cmd, srcdir)
     return True
 
