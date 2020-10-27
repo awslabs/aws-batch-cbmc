@@ -522,7 +522,7 @@ def sync_directory_to_bucket(directory, bucket, quiet=False, delete=False, metad
         abort("Not a bucket", bucket)
 
     try:
-        cmd = ['aws', 's3', 'sync', directory, url]
+        cmd = ['aws', '--debug', 's3', 'sync', directory, url]
         if delete:
             cmd.append('--delete')
         if quiet:
@@ -560,7 +560,7 @@ def sync_bucket_to_directory(bucket, directory, quiet=False, delete=False):
         abort("Not a bucket", bucket)
 
     try:
-        cmd = ['aws', 's3', 'sync', url, directory]
+        cmd = ['aws', '--debug', 's3', 'sync', url, directory]
         if delete:
             cmd.append('--delete')
         if quiet:
